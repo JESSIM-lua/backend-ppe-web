@@ -11,78 +11,47 @@ import { resolvers } from './schema/resolvers'
 dotenv.config()
 
 async function startServer() {
-	const app = express()
-	app.use(cors())
-	app.use(express.json())
+  const app = express()
+  app.use(cors())
+  app.use(express.json())
 
-	// 🚪 Route de login
-	app.post('/api/auth/login', (req, res) => {
-		const { username, password } = req.body
+  app.post('/api/auth/login', (req, res) => {
+    const { username, password } = req.body
+    if (username === 'admin' && password === 'admin') {
+      const token = jwt.sign({ username }, process.env.JWT_SECRET as string, { expiresIn: '60s' })
+      return res.json({ access_token: token, username })
+    } else {
+      return res.status(401).json({ message: 'Unauthorized' })
+    }
+  })
 
-		if (username === 'admin' && password === 'admin') {
-			const token = jwt.sign(
-				{ username },
-				process.env.JWT_SECRET as string,
-				{ expiresIn: '60s' }
-			)
+  app.use('/graphql', (req, res, next) => {
+    const authHeader = req.headers.authorization
+    const token = authHeader?.split(' ')[1]
+    if (!token) return res.status(401).json({ error: 'No token provided' })
 
-			return res.json({
-				access_token: token,
-				username: username,
-			})
-		} else {
-			return res.status(401).json({ message: 'Unauthorized' })
-		}
-	})
+    try {
+      jwt.verify(token, process.env.JWT_SECRET as string)
+      next()
+    } catch {
+      return res.status(403).json({ error: 'Invalid or expired token' })
+    }
+  })
 
-	// 🔒 Middleware de vérification du token
-	app.use('/graphql', (req, res, next) => {
-		const authHeader = req.headers.authorization
-		const token = authHeader?.split(' ')[1]
+  const server = new ApolloServer({ typeDefs, resolvers })
+  await server.start()
+  server.applyMiddleware({ app })
 
-		if (!token) {
-			return res.status(401).json({ error: 'No token provided' })
-		}
+  const credentials = {
+    key: fs.readFileSync('./cert/172.18.158.191-key.pem'),
+    cert: fs.readFileSync('./cert/172.18.158.191.pem'),
+  }
 
-		try {
-			jwt.verify(token, process.env.JWT_SECRET as string)
-			next()
-		} catch (err) {
-			return res.status(403).json({ error: 'Invalid or expired token' })
-		}
-	})
-
-	// 🚀 Apollo Server
-	const server = new ApolloServer({ typeDefs, resolvers })
-	await server.start()
-	server.applyMiddleware({ app })
-
-	// 🔐 HTTPS
-	const key = fs.readFileSync('./cert/key.pem')
-	const cert = fs.readFileSync('./cert/cert.pem')
-	const credentials = { key, cert }
-
-	const PORT = parseInt(process.env.PORT || '4000', 10)
-	https.createServer(credentials, app).listen(PORT, '0.0.0.0', () => {
-		console.log(
-			`🔐 Server ready at https://${getLocalIp()}:${PORT}${
-				server.graphqlPath
-			}`
-		)
-	})
-
-	function getLocalIp() {
-		const { networkInterfaces } = require('os')
-		const nets = networkInterfaces()
-		for (const name of Object.keys(nets)) {
-			for (const net of nets[name]) {
-				if (net.family === 'IPv4' && !net.internal) {
-					return net.address
-				}
-			}
-		}
-		return 'localhost'
-	}
+  const PORT = parseInt(process.env.PORT || '4000', 10)
+  https.createServer(credentials, app).listen(PORT, '0.0.0.0', () => {
+    console.log(`✅ HTTPS server running at https://172.18.158.191:${PORT}${server.graphqlPath}`)
+  })
 }
 
 startServer()
+
