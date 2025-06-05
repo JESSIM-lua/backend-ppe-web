@@ -4,6 +4,7 @@ export type Worksite = {
   worksiteStatus: WorksiteStatus;
   startDate?: Date;
   endDate?: Date;
+  adress?: string;
 };
 
 export enum WorksiteStatus {

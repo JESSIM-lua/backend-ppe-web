@@ -19,6 +19,7 @@ export const typeDefs = gql`
     name: String!
     startDate: String
     endDate: String
+    adress: String
     worksiteStatus: WorksiteStatus
   }
 
@@ -42,6 +43,7 @@ export const typeDefs = gql`
     name: String
     startDate: String
     endDate: String
+    adress: String
     worksiteStatus: WorksiteStatus
   }
 
@@ -49,6 +51,7 @@ export const typeDefs = gql`
     name: String!
     startDate: String
     endDate: String
+    adress: String
     worksiteStatus: WorksiteStatus
   }
 

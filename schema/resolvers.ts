@@ -77,6 +77,7 @@ export const resolvers = {
         name: "Inconnu",
         startDate: undefined,
         endDate: undefined,
+        adress: undefined,
         worksiteStatus: WorksiteStatus.PENDING,
       };
 

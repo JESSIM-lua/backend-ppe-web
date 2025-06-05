@@ -15,12 +15,25 @@ async function startServer() {
   await server.start();
   server.applyMiddleware({ app });
 
-  const PORT = process.env.PORT || 4000;
-  app.listen(PORT, () =>
+  const PORT = parseInt(process.env.PORT || "4000", 10);
+  app.listen(PORT, "0.0.0.0", () =>
     console.log(
-      `🚀 Server ready at http://localhost:${PORT}${server.graphqlPath}`
+      `🚀 Server ready at http://${getLocalIp()}:${PORT}${server.graphqlPath}`
     )
   );
+
+  function getLocalIp() {
+    const { networkInterfaces } = require("os");
+    const nets = networkInterfaces();
+    for (const name of Object.keys(nets)) {
+      for (const net of nets[name]) {
+        if (net.family === "IPv4" && !net.internal) {
+          return net.address;
+        }
+      }
+    }
+    return "localhost";
+  }
 }
 
 startServer();
